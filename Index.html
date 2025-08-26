@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+  <meta charset="utf-8" />
+  <title>मेरी कपड़ों की दुकान</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <style>
+    :root{
+      --brand:#ff6600; --bg:#f8f8f8; --text:#222; --muted:#666; --card:#fff; --border:#e5e5e5;
+    }
+    *{box-sizing:border-box}
+    body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;background:var(--bg);color:var(--text)}
+    header{position:sticky;top:0;z-index:20;background:var(--brand);color:#fff;box-shadow:0 2px 10px rgba(0,0,0,.08)}
+    .wrap{max-width:1100px;margin:0 auto;padding:12px 16px;display:flex;gap:10px;align-items:center}
+    h1{margin:0;font-size:20px}
+    .tag{font-size:12px;opacity:.9;margin-top:-2px}
+    .search{flex:1;display:flex;gap:8px}
+    .search input{flex:1;padding:10px 12px;border-radius:12px;border:1px solid #ffffff66;color:#111}
+    .btn{border:0;border-radius:12px;padding:10px 14px;background:#fff1;color:#fff;cursor:pointer}
+    .btn:hover{background:#fff2}
+    nav.filters{max-width:1100px;margin:10px auto 0;display:flex;gap:8px;flex-wrap:wrap;padding:0 16px}
+    nav.filters button, select{padding:8px 12px;border-radius:999px;border:1px solid var(--border);background:#fff;color:#222;cursor:pointer}
+    nav.filters .active{background:var(--brand);color:#fff;border-color:var(--brand)}
+    main{max-width:1100px;margin:12px auto 80px;padding:0 16px;display:grid;grid-template-columns:repeat(1,minmax(0,1fr));gap:12px}
+    @media(min-width:560px){main{grid-template-columns:repeat(2,1fr)}}
+    @media(min-width:860px){main{grid-template-columns:repeat(3,1fr)}}
+    .card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:12px}
+    .card img{width:100%;height:200px;object-fit:cover;border-radius:12px}
+    .title{margin:8px 0 4px;font-weight:700}
+    .price{color:#d35400;font-weight:700}
+    .muted{color:var(--muted);font-size:12px}
+    .wfull{width:100%}
+    footer{position:sticky;bottom:0;background:#fff;border-top:1px solid var(--border)}
+    .foot{max-width:1100px;margin:0 auto;padding:10px 16px;display:flex;justify-content:space-between;align-items:center;gap:8px}
+    .cta{background:var(--brand);color:#fff;border:0;border-radius:10px;padding:10px 14px;cursor:pointer}
+    /* Drawer (Cart) */
+    .drawer{position:fixed;inset:0;display:none;background:rgba(0,0,0,.5)}
+    .drawer.open{display:flex;justify-content:flex-end}
+    .panel{width:360px;max-width:96vw;background:#fff;height:100%;padding:14px 14px 80px;border-left:1px solid var(--border);overflow:auto}
+    .row{display:flex;align-items:center;gap:10px}
+    .space{justify-content:space-between}
+    .line{height:1px;background:var(--border);margin:10px 0}
+    .qtybtn{border:1px solid var(--border);background:#fff;border-radius:8px;width:28px;height:28px;cursor:pointer}
+    .danger{color:#b00020;background:#b0002010;border:1px solid #b0002022}
+    /* Modal */
+    .modal{position:fixed;inset:0;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,.5);padding:16px}
+    .modal.open{display:flex}
+    .sheet{background:#fff;border-radius:16px;border:1px solid var(--border);padding:16px;width:min(420px,96vw)}
+    .sheet h3{margin:0 0 10px}
+    .sheet input,.sheet textarea{width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:10px;margin:6px 0}
+    .sheet .grid2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+    .x{background:#eee;border:1px solid #ddd;border-radius:10px;padding:8px 10px;cursor:pointer}
+    /* Chips */
+    .chip{border:1px solid var(--border);padding:6px 10px;border-radius:999px;background:#fff;cursor:pointer}
+    .chip.active{background:#111;color:#fff;border-color:#111}
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="wrap">
+    <div style="display:flex;gap:8px;align-items:center">
+      <div style="font-size:22px">🛍️</div>
+      <div>
+        <h1 id="shopTitle">मेरी कपड़ों की दुकान</h1>
+        <div class="tag" id="shopTag">Stylish कपड़े सस्ते दाम में!</div>
+      </div>
+    </div>
+    <div class="search">
+      <input id="searchBox" placeholder="खोजें: टी-शर्ट, कुर्ती, जीन्स..." />
+    </div>
+    <button class="btn" id="loginBtn">👤 लॉगिन</button>
+    <button class="btn" id="cartBtn">🛒 कार्ट <span id="cartCount">0</span></button>
+  </div>
+  <nav class="filters">
+    <div id="catChips"></div>
+    <div style="margin-left:auto;display:flex;gap:8px;align-items:center">
+      <label class="muted">छाँटें:</label>
+      <select id="sortSel">
+        <option value="reco">अनुशंसित</option>
+        <option value="price_asc">कीमत: कम → ज्यादा</option>
+        <option value="price_desc">कीमत: ज्यादा → कम</option>
+        <option value="rating">रेटिंग</option>
+      </select>
+    </div>
+  </nav>
+</header>
+
+<main id="grid"></main>
+
+<footer>
+  <div class="foot">
+    <div class="muted">📞 9876543210 • 📧 kapde@dukaan.com</div>
+    <button class="cta" id="checkoutBtn">✅ ऑर्डर करें</button>
+  </div>
+</footer>
+
+<!-- Cart Drawer -->
+<div class="drawer" id="cartDrawer">
+  <div class="panel">
+    <div class="row space">
+      <h3>🛒 आपका कार्ट</h3>
+      <button class="x" id="closeCart">बंद करें ✖</button>
+    </div>
+    <div id="cartItems"></div>
+    <div class="line"></div>
+    <div class="row space">
+      <strong>कुल:</strong>
+      <strong id="cartTotal">₹0</strong>
+    </div>
+    <p class="muted">टैक्स/शिपिंग डेमो में शामिल नहीं हैं।</p>
+  </div>
+</div>
+
+<!-- Login Modal -->
+<div class="modal" id="loginModal">
+  <div class="sheet">
+    <div class="row space"><h3>👤 लॉगिन</h3><button class="x" data-close="#loginModal">✖</button></div>
+    <form id="loginForm">
+      <div class="grid2">
+        <input name="name" placeholder="नाम" required />
+        <input name="phone" placeholder="मोबाइल" required />
+      </div>
+      <button class="cta wfull" type="submit">लॉगिन</button>
+    </form>
+  </div>
+</div>
+
+<!-- Order Modal -->
+<div class="modal" id="orderModal">
+  <div class="sheet">
+    <div class="row space"><h3>✅ ऑर्डर फॉर्म</h3><button class="x" data-close="#orderModal">✖</button></div>
+    <form id="orderForm">
+      <input name="name" placeholder="नाम" required />
+      <input name="phone" placeholder="मोबाइल" required />
+      <textarea name="address" rows="3" placeholder="पता" required></textarea>
+      <button class="cta wfull" type="submit">ऑर्डर कन्फर्म करें</button>
+    </form>
+  </div>
+</div>
+
+<script>
+/* =========================
+   /* =========================
+   /* =========================
+   EDIT HERE (Config Section)
+   ========================= */
+const CONFIG {
+  shopName: "New Brand कपड़ों की दुकान",
+  shopTagline: "Stylish कपड़े, सस्ते दाम में!",
+  categories: ["सब","टी-शर्ट","कुर्ती","शर्ट","जीन्स","जूते","Kids Wear"],
+  products: [
+    { id: 1, name: "सादा टी-शर्ट", category: "टी-शर्ट", price: 299, rating: 4.2, image: "tee.jpg" },
+    { id: 2, name: "महिला कुर्ती", category: "कुर्ती",  price: 499, rating: 4.6, image: "kurti.jpg" },
+    { id: 3, name: "चेक शर्ट",     category: "शर्ट",   price: 899, rating: 4.4, image: "shirt.jpg" },
+    { id: 4, name: "स्ट्रेच जीन्स", category: "जीन्स",  price: 1299, rating: 4.5, image: "jeans.jpg" },
+    { id: 5, name: "ब्लैक जूते",    category: "जूते",  price: 1499, rating: 4.7, image: "shoes.jpg" },
+    { id: 6, name: "किड्स टी-शर्ट", category: "Kids Wear", price: 199, rating: 4.1, image: "kids-tee.jpg" },
+    { id: 7, name: "साड़ी रेड",      category: "कुर्ती", price: 1599, rating: 4.8, image: "saree.jpg" }
+  ],
+};EDIT HERE (Config Section)
+   ========================= */
+const CONFIG = {
+  shopName: "मेरी कपड़ों की दुकान",
+  shopTagline: "Stylish कपड़े सस्ते दाम में!",
+  categories: ["सब","viratkohli tshirt","rcb jursy ","csk jursy","indian cricker jursy","टी-शर्ट","कु,ी","शर्ट","जीन्स"],
+  products: [
+    { id: 1, name: "सादा टी-शर्ट", category: "टी-शर्ट", price: 299, rating: 4.2, image: "tee.jpg" },
+    { id: 2, name: "महिला कुर्ती", category: "कुर्ती",  price: 499, rating: 4.6, image: "kurti.jpg" },
+    { id: 3, name: "चेक शर्ट",     category: "शर्ट",   price: 899, rating: 4.4, image: "shirt.jpg" },
+    { id: 4, name: "स्ट्रेच जीन्स", category: "जीन्स",  price: 1299, rating: 4.5, image: "jeans.jpg" },
+  ],
+};EDIT HERE (Config Section)
+   ========================= */
+const CONFIG = {
+  shopName: "मेरी कपड़ों की दुकान",     // <-- अपना शॉप नेम
+  shopTagline: "Stylish कपड़े सस्ते दाम में!", // <-- टैगलाइन
+  categories: ["सब","टी-शर्ट","कुर्ती","शर्ट","जीन्स"], // जो दिखाने हैं
+  products: [
+    // ⬇⬇⬇ अपने प्रोडक्ट्स यहाँ जोड़ो/बदलो
+    { id: 1, name: "सादा टी-शर्ट", category: "टी-शर्ट", price: 299, rating: 4.2, image: "tee.jpg" },
+    { id: 2, name: "महिला कुर्ती", category: "कुर्ती",  price: 499, rating: 4.6, image: "kurti.jpg" },
+    { id: 3, name: "चेक शर्ट",     category: "शर्ट",   price: 899, rating: 4.4, image: "shirt.jpg" },
+    { id: 4, name: "स्ट्रेच जीन्स", category: "जीन्स",  price: 1299, rating: 4.5, image: "jeans.jpg" },
+    // Example: { id:5, name:"ब्लू साड़ी", category:"कुर्ती", price:1499, rating:4.8, image:"saree.jpg" },
+  ],
+};
+/* नोट:
+   - अपनी images को उसी फ़ोल्डर में रखो जहाँ index.html है (जैसे tee.jpg/kurti.jpg ...)
+   - नाम/price/category यहीं से बदलो। */
+
+// ===== Helper =====
+const ₹ = (n)=>"₹"+Number(n).toLocaleString("en-IN");
+const qs = (sel,ctx=document)=>ctx.querySelector(sel);
+const qsa= (sel,ctx=document)=>[...ctx.querySelectorAll(sel)];
+
+// ===== State =====
+let search = "";
+let activeCat = "सब";
+let sortBy = "reco";
+let cart = JSON.parse(localStorage.getItem("cart")||"[]");
+let user = JSON.parse(localStorage.getItem("user")||"null");
+
+// ===== Init UI text =====
+qs("#shopTitle").textContent = CONFIG.shopName;
+qs("#shopTag").textContent = CONFIG.shopTagline;
+
+// ===== Category Chips =====
+const catWrap = qs("#catChips");
+function renderCats(){
+  catWrap.innerHTML = "";
+  CONFIG.categories.forEach(c=>{
+    const b=document.createElement("button");
+    b.className="chip"+(activeCat===c?" active":"");
+    b.textContent=c;
+    b.onclick=()=>{activeCat=c; render();};
+    catWrap.appendChild(b);
+  });
+}
+renderCats();
+
+// ===== Render Products =====
+const grid = qs("#grid");
+function render(){
+  // filter
+  let list = CONFIG.products.filter(p=>{
+    const inCat = (activeCat==="सब") || (p.category===activeCat);
+    const inSearch = !search || (p.name.toLowerCase().includes(search) || p.category.toLowerCase().includes(search));
+    return inCat && inSearch;
+  });
+  // sort
+  if (sortBy==="price_asc") list.sort((a,b)=>a.price-b.price);
+  if (sortBy==="price_desc") list.sort((a,b)=>b.price-a.price);
+  if (sortBy==="rating") list.sort((a,b)=>b.rating-a.rating);
+
+  // draw
+  grid.innerHTML="";
+  if(!list.length){
+    grid.innerHTML = `<div class="card" style="grid-column:1/-1;text-align:center;color:#666">कोई उत्पाद नहीं मिला।</div>`;
+    return;
+  }
+  list.forEach(p=>{
+    const card=document.createElement("div");
+    card.className="card";
+    card.innerHTML = `
+      <img src="${p.image}" alt="${p.name}" onerror="this.src='data:image/svg+xml;utf8,${encodeURIComponent(
+        `<svg xmlns=&quot;http://www.w3.org/2000/svg&quot; width=&quot;600&quot; height=&quot;400&quot;><rect width=&quot;100%&quot; height=&quot;100%&quot; fill=&quot;#eee&quot;/><text x=&quot;50%&quot; y=&quot;50%&quot; dominant-baseline=&quot;middle&quot; text-anchor=&quot;middle&quot; font-family=&quot;Arial&quot; font-size=&quot;22&quot;>No Image</text></svg>`
+      )}'" />
+      <div class="title">${p.name}</div>
+      <div class="row space">
+        <div>
+          <div class="price">${₹(p.price)}</div>
+          <div class="muted">⭐ ${p.rating.toFixed(1)}</div>
+        </div>
+        <button class="cta" data-add="${p.id}">खरीदें</button>
+      </div>
+    `;
+    grid.appendChild(card);
+  });
+  // bind add buttons
+  qsa("[data-add]").forEach(btn=>{
+    btn.onclick=()=>{
+      const id=+btn.getAttribute("data-add");
+      const item=CONFIG.products.find(x=>x.id===id);
+      addToCart(item);
+    };
+  });
+  updateCartBadge();
+}
+render();
+
+// ===== Search & Sort =====
+qs("#searchBox").addEventListener("input",e=>{
+  search = e.target.value.trim().toLowerCase();
+  render();
+});
+qs("#sortSel").addEventListener("change",e=>{
+  sortBy = e.target.value;
+  render();
+});
+
+// ===== Cart =====
+const drawer = qs("#cartDrawer");
+const cartItemsEl = qs("#cartItems");
+const cartTotalEl = qs("#cartTotal");
+const cartCountEl = qs("#cartCount");
+
+function updateCartBadge(){
+  const count = cart.reduce((s,i)=>s+i.qty,0);
+  cartCountEl.textContent = count;
+}
+
+function saveCart(){ localStorage.setItem("cart", JSON.stringify(cart)); }
+
+function openCart(){ drawer.classList.add("open"); drawCart(); }
+function closeCart(){ drawer.classList.remove("open"); }
+
+qs("#cartBtn").onclick=openCart;
+qs("#closeCart").onclick=closeCart;
+
+function addToCart(p){
+  const idx = cart.findIndex(i=>i.id===p.id);
+  if(idx>-1) cart[idx].qty++;
+  else cart.push({id:p.id,name:p.name,price:p.price,image:p.image,qty:1});
+  saveCart(); updateCartBadge(); drawCart();
+}
+
+function changeQty(i,delta){
+  cart[i].qty += delta;
+  if(cart[i].qty<=0) cart.splice(i,1);
+  saveCart(); updateCartBadge(); drawCart();
+}
+
+function removeItem(i){
+  cart.splice(i,1); saveCart(); updateCartBadge(); drawCart();
+}
+
+function drawCart(){
+  cartItemsEl.innerHTML="";
+  let total=0;
+  cart.forEach((it,i)=>{
+    total += it.price*it.qty;
+    const row=document.createElement("div");
+    row.className="row";
+    row.style.margin="8px 0";
+    row.innerHTML=`
+      <img src="${it.image}" alt="" style="width:54px;height:54px;object-fit:cover;border-radius:10px;border:1px solid var(--border)"/>
+      <div style="flex:1">
+        <div style="font-weight:600">${it.name}</div>
+        <div class="muted">${₹(it.price)}</div>
+      </div>
+      <div class="row">
+        <button class="qtybtn" data-q="${i}" data-d="-1">−</button>
+        <div style="min-width:28px;text-align:center">${it.qty}</div>
+        <button class="qtybtn" data-q="${i}" data-d="1">+</button>
+      </div>
+      <button class="qtybtn danger" data-rm="${i}">✖</button>
+    `;
+    cartItemsEl.appendChild(row);
+  });
+  cartTotalEl.textContent = ₹(total);
+  // bind
+  qsa("[data-q]").forEach(b=>{
+    b.onclick=()=>changeQty(+b.getAttribute("data-q"), +b.getAttribute("data-d"));
+  });
+  qsa("[data-rm]").forEach(b=>{
+    b.onclick=()=>removeItem(+b.getAttribute("data-rm"));
+  });
+}
+
+// ===== Login =====
+const loginModal = qs("#loginModal");
+qs("#loginBtn").onclick=()=>loginModal.classList.add("open");
+qsa("[data-close]").forEach(x=>x.onclick=()=>qs(x.getAttribute("data-close")).classList.remove("open"));
+qs("#loginForm").onsubmit=(e)=>{
+  e.preventDefault();
+  const fd=new FormData(e.target);
+  user = {name:fd.get("name"), phone:fd.get("phone")};
+  localStorage.setItem("user", JSON.stringify(user));
+  alert("स्वागत है, "+user.name+"!");
+  loginModal.classList.remove("open");
+};
+
+// ===== Checkout =====
+const orderModal = qs("#orderModal");
+qs("#checkoutBtn").onclick=()=>{
+  if(!cart.length){ alert("कार्ट खाली है!"); return; }
+  orderModal.classList.add("open");
+  // prefill from user if any
+  const f=qs("#orderForm");
+  if(user){ f.elements.name.value=user.name; f.elements.phone.value=user.phone; }
+};
+qs("#orderForm").onsubmit=(e)=>{
+  e.preventDefault();
+  if(!cart.length){ alert("कार्ट खाली है!"); return; }
+  const fd=new FormData(e.target);
+  const order = {
+    id: "ORD" + Math.floor(Math.random()*1e8).toString().padStart(8,"0"),
+    name: fd.get("name"),
+    phone: fd.get("phone"),
+    address: fd.get("address"),
+    items: cart, total: cart.reduce((s,i)=>s+i.price*i.qty,0)
+  };
+  alert(`धन्यवाद ${order.name}! आपका ऑर्डर ${order.id} कन्फर्म हो गया.\nकुल: ${₹(order.total)}\nडिलीवरी: ${order.address}`);
+  cart = []; saveCart(); updateCartBadge(); drawCart();
+  orderModal.classList.remove("open");
+  closeCart();
+};
+
+// ===== Close modal on outside click =====
+[loginModal, orderModal, drawer].forEach(el=>{
+  el.addEventListener("click",(e)=>{ if(e.target===el){ el.classList.remove("open"); }});
+});
+
+// ===== Persisted user/cart on load =====
+updateCartBadge();
+drawCart();
+
+// ===== Cart open via footer CTA too =====
+qs("#checkoutBtn").onclick = ()=>{ if(!cart.length){ alert("कार्ट खाली है!"); } else { orderModal.classList.add("open"); } };
+qs("#cartBtn").onclick = openCart;
+</script>
+</body>
+</html>
+<footer>
+  <div class="foot">
+    <div class="muted">📞 8102997433 • 📧 newbrand@gmail.com</div>
+    <button class="cta" id="checkoutBtn">✅ ऑर्डर करें</button>
+  </div>
+</footer>
